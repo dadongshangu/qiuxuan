@@ -27,7 +27,8 @@ Thumbs.db
 
 # 聊天记录和隐私文件（不上传到GitHub）
 assets/chat/
-assets/images/
+# 图片文件允许上传到GitHub（用于CDN加速）
+# assets/images/ 已移除，允许图片文件提交
 # 处理后的聊天记录文件
 *.chat
 *.wechat
