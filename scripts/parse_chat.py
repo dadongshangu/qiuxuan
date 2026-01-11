@@ -28,8 +28,11 @@ SUBJECT_KEYWORDS = {
     "化学": ["化学", "元素", "化合物", "反应", "离子", "分子", "原子", "有机", "无机", "酸碱", "氧化还原"]
 }
 
-# 提问关键词
-QUESTION_KEYWORDS = ["?", "？", "什么", "为什么", "怎么", "如何", "哪个", "哪些", "请", "能否", "可以"]
+# 提问关键词（扩展版）
+QUESTION_KEYWORDS = [
+    "?", "？", "什么", "为什么", "怎么", "如何", "哪个", "哪些", "请", "能否", "可以",
+    "帮我", "讲题", "讲讲", "看看", "不会", "不懂", "不明白"
+]
 
 
 class ChatMessage:
@@ -42,12 +45,23 @@ class ChatMessage:
         self.is_question = False
         self.subject = None
         
-    def analyze(self, teacher_name: str = "您"):
+    def analyze(self, teacher_name: str = "您", student_name: str = "秋璇"):
         """分析消息，判断是否为提问，识别学科"""
         # 判断是否为提问（支持多种名称匹配）
         teacher_names = [teacher_name, "您", "孟祥志", "四叔"]
+        student_names = [student_name, "秋璇", "孟秋璇", "学生"]
+        
+        # 老师提问
         if self.sender in teacher_names or any(name in self.sender for name in teacher_names):
             if any(keyword in self.content for keyword in QUESTION_KEYWORDS):
+                self.is_question = True
+        
+        # 学生请求帮助（也应该识别为问题）
+        if self.sender in student_names or any(name in self.sender for name in student_names):
+            # 检查是否包含请求帮助的关键词
+            help_keywords = ["帮我", "讲题", "讲讲", "看看", "不会", "不懂", "不明白", 
+                           "怎么做", "怎么", "如何", "什么", "为什么", "？", "?"]
+            if any(keyword in self.content for keyword in help_keywords):
                 self.is_question = True
         
         # 识别学科
@@ -204,9 +218,44 @@ class ChatParser:
         
         # 分析每条消息
         for msg in self.messages:
-            msg.analyze(self.teacher_name)
+            msg.analyze(self.teacher_name, self.student_name)
+        
+        # 处理图片消息：将图片与前后的问题关联
+        self._associate_images_with_questions()
         
         print(f"总共加载了 {len(self.messages)} 条消息")
+    
+    def _associate_images_with_questions(self):
+        """将图片消息与前后的问题关联起来"""
+        for i, msg in enumerate(self.messages):
+            # 检查是否是图片消息
+            if "图片" in msg.content or "附件" in msg.content:
+                # 向前查找最近的问题（最多往前5条消息）
+                for j in range(max(0, i-5), i):
+                    prev_msg = self.messages[j]
+                    if prev_msg.is_question:
+                        # 将图片添加到问题消息中
+                        if not prev_msg.images:
+                            prev_msg.images = []
+                        # 提取图片编号或文件名
+                        image_ref = msg.content
+                        prev_msg.images.append(image_ref)
+                        # 合并内容
+                        if image_ref not in prev_msg.content:
+                            prev_msg.content += f"\n[{image_ref}]"
+                        break
+                # 如果向前没找到，向后查找（最多往后3条消息）
+                if not msg.images and i < len(self.messages) - 1:
+                    for j in range(i+1, min(i+4, len(self.messages))):
+                        next_msg = self.messages[j]
+                        if next_msg.is_question:
+                            if not next_msg.images:
+                                next_msg.images = []
+                            image_ref = msg.content
+                            next_msg.images.append(image_ref)
+                            if image_ref not in next_msg.content:
+                                next_msg.content = f"[{image_ref}]\n" + next_msg.content
+                            break
     
     def filter_by_date(self, start_date: str = "2025-09-01", end_date: str = None):
         """按日期过滤消息"""
