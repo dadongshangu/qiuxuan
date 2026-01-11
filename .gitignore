@@ -25,7 +25,16 @@ Thumbs.db
 *.log
 *.bak
 
-# 聊天记录原始文件（如果不想提交）
-# assets/chat/*.txt
-# assets/chat/*.json
-# assets/chat/*.html
+# 聊天记录和隐私文件（不上传到GitHub）
+assets/chat/
+assets/images/
+# 处理后的聊天记录文件
+*.chat
+*.wechat
+# 微信备份相关
+**/xwechat_files/
+**/WeChat Files/
+# 可能包含隐私的临时处理文件
+temp/
+tmp/
+*.processed
