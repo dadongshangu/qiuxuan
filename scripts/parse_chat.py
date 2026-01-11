@@ -44,8 +44,9 @@ class ChatMessage:
         
     def analyze(self, teacher_name: str = "您"):
         """分析消息，判断是否为提问，识别学科"""
-        # 判断是否为提问
-        if self.sender == teacher_name:
+        # 判断是否为提问（支持多种名称匹配）
+        teacher_names = [teacher_name, "您", "孟祥志", "四叔"]
+        if self.sender in teacher_names or any(name in self.sender for name in teacher_names):
             if any(keyword in self.content for keyword in QUESTION_KEYWORDS):
                 self.is_question = True
         
@@ -289,9 +290,10 @@ class DocumentGenerator:
     def _find_answer(self, question: ChatMessage, messages: List[ChatMessage]) -> Optional[ChatMessage]:
         """查找问题的回答"""
         q_index = messages.index(question)
-        # 查找问题后的第一条学生消息
+        # 查找问题后的第一条学生消息（支持多种名称匹配）
+        student_names = [self.parser.student_name, "秋璇", "孟秋璇"]
         for i in range(q_index + 1, min(q_index + 5, len(messages))):
-            if messages[i].sender == self.parser.student_name:
+            if messages[i].sender in student_names or any(name in messages[i].sender for name in student_names):
                 return messages[i]
         return None
     
@@ -371,7 +373,8 @@ def main():
     CLASS_RECORDS_DIR.mkdir(parents=True, exist_ok=True)
     
     # 初始化解析器
-    parser = ChatParser(teacher_name="您", student_name="秋璇")
+    # 支持多种发送者名称匹配
+    parser = ChatParser(teacher_name="孟祥志", student_name="孟秋璇")
     
     # 加载聊天记录
     parser.load_chat_records()
